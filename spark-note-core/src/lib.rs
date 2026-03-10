@@ -48,6 +48,7 @@ pub mod serialization;
 pub mod validation;
 pub mod rng;
 pub mod crypto;
+pub mod tezos;
 
 // WASM bindings (enabled with --features wasm)
 #[cfg(feature = "wasm")]
@@ -64,6 +65,7 @@ pub use nullifier::{
 };
 pub use serialization::{export_nullifier_set, import_nullifier_set, NullifierSetExport};
 pub use validation::{validate_nullifier, validate_secret, validate_value};
+pub use tezos::{TezosClient, TezosOperationResult};
 
 // UniFFI setup for native bindings
 uniffi::setup_scaffolding!();

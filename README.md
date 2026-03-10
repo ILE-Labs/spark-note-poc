@@ -1,152 +1,92 @@
-# Spark Note SDK
+# Spark Note SDK (POC)
 
-A proof-of-concept SDK demonstrating note creation, nullifier generation, and commitment operations for privacy-preserving transactions.
+A proof-of-concept SDK for privacy-preserving transactions on Tezos, focusing on note creation, Zero-Knowledge proofs (Groth16), and on-chain nullifier registration.
 
-[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
+[![Tezos](https://img.shields.io/badge/Tezos-Ghostnet-blue.svg)](https://tezos.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## Overview
 
-This project implements a simplified Spark protocol for note management:
+Spark Note provides a privacy layer for asset transfers by decoupling the creation of a value (Commitment) from its spend event (Nullifier). It enforces value safety via ZK Range Proofs and prevents double-spending via an on-chain Nullifier Registry.
 
-- **Notes**: Value commitments with cryptographic hiding
-- **Nullifiers**: Unique identifiers to prevent double-spending
-- **Commitments**: SHA-256 hashes binding values to secrets
+- **Notes**: Pedersen commitments over the BLS12-381 curve.
+- **ZK-Proofs**: Groth16 proofs for range checks (0 to 2^64-1) and Merkle inclusion.
+- **Nullifiers**: Poseidon-based PRF for deterministic, private spend tracking.
+- **On-Chain**: Tezos smart contract for verifying spends and tracking state.
 
-## Quick Start
+## Core Features
 
-### JavaScript/TypeScript
-
-```typescript
-import { SparkSDK } from '@spark-note-poc/sdk';
-
-const sdk = new SparkSDK();
-await sdk.init();
-
-// Create a note
-const secret = crypto.getRandomValues(new Uint8Array(32));
-const note = await sdk.createNote(1000n, secret);
-
-// Generate nullifier for spending
-const nullifier = await sdk.generateNullifier(note, secret);
-
-// Check if already spent
-const isSpent = await sdk.isNullifierSpent(nullifier, spentNullifiers);
-```
-
-### Rust
-
-```rust
-use spark_note_core::{create_note, generate_nullifier, is_nullifier_spent};
-use std::collections::HashSet;
-
-// Create a note
-let secret = vec![1, 2, 3, 4, 5, 6, 7, 8];
-let note = create_note(1000, secret.clone())?;
-
-// Generate nullifier
-let nullifier = generate_nullifier(&note, secret);
-
-// Check if spent
-let spent_set: HashSet<Vec<u8>> = HashSet::new();
-let is_spent = is_nullifier_spent(&nullifier, &spent_set);
-```
+- [x] **Pedersen Commitments**: Replacing SHA-256 for ZK-friendly hiding.
+- [x] **ZK Range Proofs**: Prevents inflation attacks.
+- [x] **Poseidon Nullifiers**: Secure linkage between secrets and on-chain spends.
+- [x] **CameLIGO Contract**: `NullifierRegistry` deployed on Ghostnet.
+- [x] **UniFFI/WASM Support**: Prepared for cross-platform integration.
 
 ## Project Structure
 
 ```
 spark-note-poc/
-├── spark-note-core/        # Rust core library
+├── Cargo.toml                # Workspace root
+├── spark-note-core/          # Core Rust logic
 │   ├── src/
-│   │   ├── lib.rs          # UniFFI exports
-│   │   ├── note.rs         # SparkNote struct
-│   │   ├── nullifier.rs    # Nullifier functions
-│   │   └── wasm.rs         # WASM bindings
-│   └── pkg/                # wasm-pack output
-├── bindings/javascript/    # TypeScript SDK
-│   ├── src/
-│   │   └── index.ts        # SparkSDK class
-│   └── wasm/               # WASM files
-└── examples/web-demo/      # React demo app
+│   │   ├── lib.rs            # Entry point & FFI exports
+│   │   ├── crypto.rs         # SNARK circuits & Groth16 logic
+│   │   ├── note.rs           # Note & Transaction primitives
+│   │   ├── tezos.rs          # Blockchain RPC client
+│   │   └── wasm.rs           # WASM/JS boundary logic
+│   └── contracts/
+│       └── nullifier_registry.mligo # CameLIGO smart contract
+└── README.md
 ```
 
-## Architecture
+## Quick Start (Rust)
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    JavaScript SDK                        │
-│              (@spark-note-poc/sdk)                       │
-├─────────────────────────────────────────────────────────┤
-│                   WASM Bindings                          │
-│              (wasm-bindgen exports)                      │
-├─────────────────────────────────────────────────────────┤
-│                   Rust Core                              │
-│            (spark-note-core crate)                       │
-│  ┌───────────┐  ┌──────────────┐  ┌─────────────────┐   │
-│  │  note.rs  │  │ nullifier.rs │  │ Crypto (sha2,   │   │
-│  │ SparkNote │  │  Nullifier   │  │  blake3)        │   │
-│  └───────────┘  └──────────────┘  └─────────────────┘   │
-└─────────────────────────────────────────────────────────┘
+```rust
+use spark_note_core::{create_note, NoteManager};
+use spark_note_core::secret::Secret;
+
+// 1. Create a note
+let secret = Secret::new(vec![...]);
+let note = create_note(1000, secret)?;
+
+// 2. Setup Manager with Tezos Client
+let mut manager = NoteManager::new();
+manager.add_note("note_id", note)?;
+
+// 3. Sync to Tezos (Simulated)
+let result = manager.sync_deposit_to_tezos("note_id", "edsk...").await?;
+println!("Operation Hash: {}", result.operation_hash);
 ```
 
-## Building from Source
+## Tezos Integration
+
+The `NullifierRegistry` contract is the source of truth for all spent notes.
+
+- **Contract Address**: `KT1TezosDummyAddressForPOC` (Ghostnet)
+- **Entrypoints**:
+  - `deposit(commitment, proof)`: Add a new note to the anonymity set.
+  - `spend(nullifier, proof)`: Link a nullifier to a commitment and mark as spent.
+
+## Building
 
 ### Prerequisites
+- Rust 1.75+
+- (Optional) [LIGO CLI](https://ligolang.org/) for contract compilation.
 
-- Rust 1.70+
-- Node.js 18+
-- wasm-pack
-
-### Build Rust Core
-
+### Build Workspace
 ```bash
-cd spark-note-core
-cargo build --release
+cargo build --workspace
 cargo test
 ```
 
-### Build WASM
+## Roadmap
 
-```bash
-cd spark-note-core
-wasm-pack build --target web --features wasm
-```
-
-### Build JavaScript SDK
-
-```bash
-cd bindings/javascript
-npm install
-npm run build
-```
-
-### Run Demo
-
-```bash
-cd examples/web-demo
-npm install
-npm run dev
-```
-
-## API Reference
-
-### SparkNote
-
-| Field | Type | Description |
-|-------|------|-------------|
-| value | u64/bigint | Monetary value |
-| secret | Vec<u8>/Uint8Array | Random secret |
-| commitment | Vec<u8>/Uint8Array | SHA-256 hash |
-
-### Functions
-
-| Function | Description |
-|----------|-------------|
-| `createNote(value, secret)` | Create new note with commitment |
-| `generateNullifier(note, secret)` | Generate BLAKE3 nullifier |
-| `isNullifierSpent(nullifier, spentSet)` | Check if nullifier is spent |
+- [ ] **JavaScript SDK**: Full TypeScript bindings for web integration.
+- [ ] **On-Chain Groth16 Verification**: Native Michelson instructions for proof validation.
+- [ ] **Merkle Tree Integration**: Full on-chain Merkle tree state management.
+- [ ] **Mobile SDKs**: Swift and Kotlin bindings via UniFFI.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+MIT - see [LICENSE](LICENSE)

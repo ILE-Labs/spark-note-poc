@@ -22,6 +22,7 @@ use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
 use ark_groth16::Groth16;
 use ark_snark::{SNARK, CircuitSpecificSetupSNARK};
 use ark_bls12_381::Bls12_381;
+use ark_std::vec::Vec;
 use ark_std::marker::PhantomData;
 
 /// Domain separator used to derive the independent generator H via hash-to-curve.
@@ -384,8 +385,8 @@ impl SpendingProof {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::UniformRand;
-    use ark_std::test_rng;
+    use ark_ec::AffineRepr;
+    use ark_ff::PrimeField;
 
     #[test]
     fn test_constant_time_eq_equal() {

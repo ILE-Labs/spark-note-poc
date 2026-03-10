@@ -64,6 +64,8 @@ pub struct NoteManager {
     notes: HashMap<String, InternalNoteEntry>,
     /// Global set of spent nullifiers (efficient fixed-size keys)
     spent_nullifiers: NullifierSet,
+    /// Optional Tezos client for on-chain synchronization
+    pub tezos_client: Option<std::sync::Arc<crate::tezos::TezosClient>>,
 }
 
 impl NoteManager {
@@ -72,7 +74,14 @@ impl NoteManager {
         NoteManager {
             notes: HashMap::new(),
             spent_nullifiers: NullifierSet::new(),
+            tezos_client: None,
         }
+    }
+    
+    /// Sets the Tezos client
+    pub fn with_tezos_client(mut self, client: crate::tezos::TezosClient) -> Self {
+        self.tezos_client = Some(std::sync::Arc::new(client));
+        self
     }
     
     /// Adds a note to the manager
@@ -117,9 +126,7 @@ impl NoteManager {
     }
     
     /// Gets a mutable reference to internal note entry
-    fn get_note_mut(&mut self, id: &str) -> Option<&mut InternalNoteEntry> {
-        self.notes.get_mut(id)
-    }
+
     
     /// Lists all note IDs
     pub fn list_note_ids(&self) -> Vec<String> {
@@ -277,6 +284,36 @@ impl NoteManager {
     #[deprecated(note = "Use NullifierSet directly. This method will be removed in v2.0")]
     pub fn get_spent_nullifiers(&self) -> Vec<Vec<u8>> {
         self.spent_nullifiers.export()
+    }
+
+    /// Sync a deposit to Tezos
+    pub async fn sync_deposit_to_tezos(&self, id: &str, secret_key: &str) -> SparkResult<crate::tezos::TezosOperationResult> {
+        let entry = self.get_note(id).ok_or_else(|| SparkError::OperationError {
+            message: format!("Note with ID '{}' not found", id),
+        })?;
+        
+        // This would require a real ZK proof attached to the note
+        // For POC, we use a dummy proof
+        let dummy_proof = vec![0u8; 128];
+        
+        let client = self.tezos_client.as_ref().ok_or_else(|| SparkError::tezos_error("Tezos client not configured"))?;
+        client.deposit(&entry.note, &dummy_proof, secret_key).await
+    }
+
+    /// Sync a spend to Tezos
+    pub async fn sync_spend_to_tezos(&self, id: &str, secret_key: &str) -> SparkResult<crate::tezos::TezosOperationResult> {
+         let entry = self.get_note(id).ok_or_else(|| SparkError::OperationError {
+            message: format!("Note with ID '{}' not found", id),
+        })?;
+        
+        let nullifier = entry.nullifier.as_ref().ok_or_else(|| SparkError::OperationError {
+            message: "Nullifier not generated for note".to_string(),
+        })?;
+        
+        let dummy_proof = vec![0u8; 128];
+        
+        let client = self.tezos_client.as_ref().ok_or_else(|| SparkError::tezos_error("Tezos client not configured"))?;
+        client.spend(nullifier, &dummy_proof, secret_key).await
     }
 }
 

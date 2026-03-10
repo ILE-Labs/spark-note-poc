@@ -88,7 +88,7 @@ impl Default for NullifierSet {
 /// the efficient NullifierSet internally when possible.
 pub fn is_nullifier_spent(nullifier: &[u8], spent_set: &HashSet<Vec<u8>>) -> bool {
     // Convert to Nullifier for efficient lookup
-    if let Ok(n) = Nullifier::from_slice(nullifier) {
+    if let Ok(_n) = Nullifier::from_slice(nullifier) {
         // Convert HashSet<Vec<u8>> to HashSet<Nullifier> for lookup
         // This is not ideal but maintains backward compatibility
         spent_set.contains(nullifier)

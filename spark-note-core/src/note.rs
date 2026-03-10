@@ -3,7 +3,7 @@ use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::PrimeField;
 use std::ops::Mul;
 
-use crate::error::{SparkError, SparkResult};
+use crate::error::SparkResult;
 use crate::validation::{validate_secret, validate_value};
 use crate::secret::Secret;
 use crate::crypto::{self, SpendingProof};

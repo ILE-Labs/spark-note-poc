@@ -57,9 +57,15 @@ pub enum SparkError {
         message: String,
     },
     
-    /// ZK Proof errors
     #[error("Proof error: {message}")]
     ProofError {
+        /// Human-readable error message
+        message: String,
+    },
+    
+    /// Tezos blockchain errors
+    #[error("Tezos error: {message}")]
+    TezosError {
         /// Human-readable error message
         message: String,
     },
@@ -113,6 +119,7 @@ impl SparkError {
             SparkError::SerializationError { .. } => "SERIALIZATION_ERROR".to_string(),
             SparkError::OperationError { .. } => "OPERATION_ERROR".to_string(),
             SparkError::ProofError { .. } => "PROOF_ERROR".to_string(),
+            SparkError::TezosError { .. } => "TEZOS_ERROR".to_string(),
         }
     }
     
@@ -139,6 +146,9 @@ impl SparkError {
             }
             SparkError::ProofError { message } => {
                 format!("Proof error: {}", message)
+            }
+            SparkError::TezosError { message } => {
+                format!("Tezos error: {}", message)
             }
         }
     }
@@ -170,6 +180,13 @@ impl SparkError {
     /// Create a proof error
     pub fn invalid_proof(message: impl Into<String>) -> Self {
         SparkError::ProofError {
+            message: message.into(),
+        }
+    }
+
+    /// Create a Tezos error
+    pub fn tezos_error(message: impl Into<String>) -> Self {
+        SparkError::TezosError {
             message: message.into(),
         }
     }
