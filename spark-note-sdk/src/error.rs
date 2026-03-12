@@ -4,7 +4,7 @@
 //! with proper error codes and user-friendly messages.
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+// use thiserror::Error;
 
 /// Comprehensive error types for Spark Note operations
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)] // uniffi::Error

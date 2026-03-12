@@ -1,7 +1,7 @@
 use spark_note_sdk::{NoteManager, create_note};
 use spark_note_sdk::secret::Secret;
 use spark_note_sdk::tezos::TezosClient;
-use std::sync::Arc;
+// use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

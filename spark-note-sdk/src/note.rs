@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use ark_crypto_primitives::sponge::poseidon::PoseidonSponge;
-use ark_crypto_primitives::sponge::CryptographicSponge;
+// use ark_crypto_primitives::sponge::poseidon::PoseidonSponge;
+// use ark_crypto_primitives::sponge::CryptographicSponge;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_ff::PrimeField;
 use std::ops::Mul;
@@ -174,7 +174,7 @@ fn compute_commitment(value: u64, secret: &[u8]) -> Vec<u8> {
 mod tests {
     use super::*;
     use crate::error::SparkError;
-    use ark_serialize::CanonicalSerialize;
+    // use ark_serialize::CanonicalSerialize;
 
     #[test]
     fn test_create_note() {
